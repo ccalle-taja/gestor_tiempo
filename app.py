@@ -67,8 +67,9 @@ if st.session_state.user is None:
 # ----------------------------------------------------
 # APLICACIÓN PRINCIPAL (USUARIO AUTENTICADO)
 # ----------------------------------------------------
-user_id = [enlace sospechoso eliminado]
-user_email = [enlace sospechoso eliminado]
+user_obj = st.session_state.user
+user_id = getattr(user_obj, "id")
+user_email = getattr(user_obj, "email")
 
 # Inicializar estado temporal si no existe
 if "actividad_en_curso" not in st.session_state:
@@ -83,7 +84,7 @@ if st.sidebar.button("Cerrar Sesión"):
     st.session_state.user = None
     st.rerun()
 
-opcion = [enlace sospechoso eliminado](
+opcion = st.sidebar.radio(
     "Selecciona una sección:",
     ["⏱️ Cronómetro", "📊 Dashboard y Análisis", "🎯 Proyectos (Máx 3)"]
 )
@@ -135,10 +136,10 @@ if opcion == "⏱️ Cronómetro":
             else:
                 st.session_state.actividad_en_curso = {
                     "tarea": nombre_tarea,
-                    "categoria": categoria, # Código A, B, C, D o E
+                    "categoria": categoria,
                     "categoria_nombre": categoria,
                     "tipo_valor": tipo_valor,
-                    "hora_inicio": [enlace sospechoso eliminado]()
+                    "hora_inicio": datetime.now()
                 }
                 st.rerun()
     else:
@@ -149,7 +150,7 @@ if opcion == "⏱️ Cronómetro":
         col_stop, col_cancel = st.columns(2)
         with col_stop:
             if st.button("⏹️ Detener y Guardar Registro"):
-                hora_fin = [enlace sospechoso eliminado]()
+                hora_fin = datetime.now()
                 duracion_segundos = (hora_fin - act["hora_inicio"]).total_seconds()
                 duracion_minutos = round(duracion_segundos / 60, 2)
                 duracion_horas = round(duracion_minutos / 60, 2)
@@ -182,9 +183,10 @@ if opcion == "⏱️ Cronómetro":
     st.markdown("---")
     st.subheader("📋 Tus Registros Guardados")
     res_regs = supabase.table("registros").select("*").eq("user_id", user_id).execute()
+    datos_regs = getattr(res_regs, "data", [])
     
-    if len([enlace sospechoso eliminado]) > 0:
-        df_registros = pd.DataFrame([enlace sospechoso eliminado])
+    if len(datos_regs) > 0:
+        df_registros = pd.DataFrame(datos_regs)
         st.dataframe(
             df_registros[["fecha", "tarea", "codigo", "categoria", "valor", "inicio", "fin", "minutos", "horas"]],
             use_container_width=True
@@ -193,7 +195,7 @@ if opcion == "⏱️ Cronómetro":
         total_horas = round(total_minutos / 60, 2)
         st.metric("Total Acumulado", f"{total_horas} horas ({round(total_minutos, 1)} min)")
     else:
-        [enlace sospechoso eliminado]("Aún no tienes registros guardados en tu cuenta. ¡Inicia uno arriba!")
+        st.info("Aún no tienes registros guardados en tu cuenta. ¡Inicia uno arriba!")
 
 # ----------------------------------------------------
 # SECCIÓN 2: DASHBOARD Y ANÁLISIS
@@ -202,11 +204,12 @@ elif opcion == "📊 Dashboard y Análisis":
     st.header("📊 Cuadro de Mandos y Diagnóstico de Tiempo")
     
     res_regs = supabase.table("registros").select("*").eq("user_id", user_id).execute()
+    datos_regs = getattr(res_regs, "data", [])
     
-    if len([enlace sospechoso eliminado]) == 0:
+    if len(datos_regs) == 0:
         st.warning("⚠️ No hay actividades registradas en tu cuenta para mostrar el diagnóstico.")
     else:
-        df = pd.DataFrame([enlace sospechoso eliminado])
+        df = pd.DataFrame(datos_regs)
         total_minutos_totales = df["minutos"].sum()
         total_horas_totales = round(total_minutos_totales / 60, 2)
         
@@ -242,7 +245,7 @@ elif opcion == "📊 Dashboard y Análisis":
         with col_graf:
             st.write("**Comparativa: % Real vs % Ideal**")
             chart_data = df_analisis.set_index("codigo")[["% Real", "% Ideal"]]
-            [enlace sospechoso eliminado]_chart(chart_data)
+            st.bar_chart(chart_data)
             
         with col_tabla:
             st.write("**Tabla Detallada por Categorías**")
@@ -255,7 +258,7 @@ elif opcion == "🎯 Proyectos (Máx 3)":
     st.header("🎯 Gestión de Proyectos Activos (Límite Finito)")
     
     res_proj = supabase.table("proyectos").select("*").eq("user_id", user_id).execute()
-    proyectos_usuario = [enlace sospechoso eliminado]
+    proyectos_usuario = getattr(res_proj, "data", [])
     
     activos = [p for p in proyectos_usuario if p["estado"] == "En Progreso"]
     num_activos = len(activos)
@@ -301,7 +304,7 @@ elif opcion == "🎯 Proyectos (Máx 3)":
     st.markdown("---")
     st.subheader("2. Proyectos Activos en Ejecución (Máximo 3)")
     if num_activos == 0:
-        [enlace sospechoso eliminado]("No tienes proyectos activos en tu cuenta.")
+        st.info("No tienes proyectos activos en tu cuenta.")
     else:
         for p in activos:
             c1, c2, c3 = st.columns(3)
