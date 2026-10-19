@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from supabase import create_client, Client
 
 # Configuración de la página web
 st.set_page_config(
@@ -9,28 +10,85 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicializar memoria temporal en Streamlit
-if "registros" not in st.session_state:
-    st.session_state.registros = []
+# ----------------------------------------------------
+# CONEXIÓN CON SUPABASE
+# ----------------------------------------------------
+@st.cache_resource
+def init_supabase() -> Client:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
+supabase = init_supabase()
+
+# Manejo de la sesión de usuario
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+# ----------------------------------------------------
+# PANTALLA DE AUTENTICACIÓN (LOGIN / REGISTRO)
+# ----------------------------------------------------
+if st.session_state.user is None:
+    st.title("⏱️ Gestor de Tiempo y Productividad")
+    st.write("Inicia sesión o crea tu cuenta para guardar y sincronizar tu tiempo en cualquier dispositivo.")
+    
+    tab_login, tab_registro = st.tabs(["🔐 Iniciar Sesión", "📝 Crear Cuenta"])
+    
+    with tab_login:
+        with st.form("form_login"):
+            email_login = st.text_input("Correo electrónico:")
+            pass_login = st.text_input("Contraseña:", type="password")
+            btn_login = st.form_submit_button("Entrar", type="primary")
+            
+            if btn_login:
+                try:
+                    res = supabase.auth.sign_in_with_password({"email": email_login, "password": pass_login})
+                    st.session_state.user = res.user
+                    st.success("¡Bienvenido!")
+                    st.rerun()
+                except Exception as e:
+                    st.error("Error al iniciar sesión. Revisa tu correo y contraseña.")
+
+    with tab_registro:
+        with st.form("form_registro"):
+            email_reg = st.text_input("Correo electrónico:")
+            pass_reg = st.text_input("Crea una contraseña (mínimo 6 caracteres):", type="password")
+            btn_reg = st.form_submit_button("Crear mi cuenta")
+            
+            if btn_reg:
+                try:
+                    res = supabase.auth.sign_up({"email": email_reg, "password": pass_reg})
+                    st.success("✅ Cuenta creada con éxito. Ya puedes iniciar sesión.")
+                except Exception as e:
+                    st.error(f"Error al registrarse: {e}")
+                    
+    st.stop()  # Detiene la ejecución aquí hasta que el usuario se autentique
+
+# ----------------------------------------------------
+# APLICACIÓN PRINCIPAL (USUARIO AUTENTICADO)
+# ----------------------------------------------------
+user_id = [enlace sospechoso eliminado]
+user_email = [enlace sospechoso eliminado]
+
+# Inicializar estado temporal si no existe
 if "actividad_en_curso" not in st.session_state:
     st.session_state.actividad_en_curso = None
 
-if "proyectos" not in st.session_state:
-    st.session_state.proyectos = [
-        {"nombre": "Construir App Web de Gestión de Tiempo", "estado": "En Progreso", "foco": "Estudio / Trabajo"},
-        {"nombre": "Rutina Diaria de Ejercicio (Kaizen)", "estado": "En Progreso", "foco": "Personal / Salud"}
-    ]
-
-# Título principal
-st.title("⏱️ Registro y Gestión del Tiempo")
-
-# Barra lateral para el menú
+# Barra lateral
 st.sidebar.title("Menú Principal")
-opcion = st.sidebar.radio(
+st.sidebar.write(f"👤 **Usuario:** {user_email}")
+
+if st.sidebar.button("Cerrar Sesión"):
+    supabase.auth.sign_out()
+    st.session_state.user = None
+    st.rerun()
+
+opcion = [enlace sospechoso eliminado](
     "Selecciona una sección:",
     ["⏱️ Cronómetro", "📊 Dashboard y Análisis", "🎯 Proyectos (Máx 3)"]
 )
+
+st.title("⏱️ Registro y Gestión del Tiempo")
 
 # ----------------------------------------------------
 # SECCIÓN 1: CRONÓMETRO DE ACTIVIDADES
@@ -70,51 +128,49 @@ if opcion == "⏱️ Cronómetro":
     st.markdown("---")
     st.subheader("2. Control de Tiempo")
     
-    # Si no hay actividad en curso
     if st.session_state.actividad_en_curso is None:
         if st.button("▶️ Iniciar Actividad", type="primary"):
             if nombre_tarea.strip() == "":
-                st.warning("Por favor, escribe un nombre para la tarea antes de iniciar.")
+                st.warning("Por favor, escribe un nombre para la tarea.")
             else:
                 st.session_state.actividad_en_curso = {
                     "tarea": nombre_tarea,
-                    "categoria": categoria,
+                    "categoria": categoria, # Código A, B, C, D o E
                     "categoria_nombre": categoria,
                     "tipo_valor": tipo_valor,
-                    "hora_inicio": datetime.now()
+                    "hora_inicio": [enlace sospechoso eliminado]()
                 }
                 st.rerun()
     else:
-        # Si hay una actividad corriendo
         act = st.session_state.actividad_en_curso
         inicio_str = act["hora_inicio"].strftime("%H:%M:%S")
-        
         st.success(f"🟢 **En curso:** {act['tarea']} | **Categoría:** {act['categoria_nombre']} | **Inicio:** {inicio_str}")
         
         col_stop, col_cancel = st.columns(2)
-        
         with col_stop:
             if st.button("⏹️ Detener y Guardar Registro"):
-                hora_fin = datetime.now()
+                hora_fin = [enlace sospechoso eliminado]()
                 duracion_segundos = (hora_fin - act["hora_inicio"]).total_seconds()
                 duracion_minutos = round(duracion_segundos / 60, 2)
                 duracion_horas = round(duracion_minutos / 60, 2)
                 
-                nuevo_registro = {
-                    "Fecha": act["hora_inicio"].strftime("%Y-%m-%d"),
-                    "Tarea": act["tarea"],
-                    "Código": act["categoria"],
-                    "Categoría": act["categoria_nombre"],
-                    "Valor": act["tipo_valor"],
-                    "Inicio": act["hora_inicio"].strftime("%H:%M:%S"),
-                    "Fin": hora_fin.strftime("%H:%M:%S"),
-                    "Minutos": duracion_minutos,
-                    "Horas": duracion_horas
+                # Guardar directamente en Supabase
+                nuevo_reg = {
+                    "user_id": user_id,
+                    "fecha": act["hora_inicio"].strftime("%Y-%m-%d"),
+                    "tarea": act["tarea"],
+                    "codigo": act["categoria"],
+                    "categoria": act["categoria_nombre"],
+                    "valor": act["tipo_valor"],
+                    "inicio": act["hora_inicio"].strftime("%H:%M:%S"),
+                    "fin": hora_fin.strftime("%H:%M:%S"),
+                    "minutos": duracion_minutos,
+                    "horas": duracion_horas
                 }
                 
-                st.session_state.registros.append(nuevo_registro)
+                supabase.table("registros").insert(nuevo_reg).execute()
                 st.session_state.actividad_en_curso = None
-                st.toast("✅ ¡Registro guardado con éxito!")
+                st.toast("✅ ¡Guardado en tu base de datos!")
                 st.rerun()
                 
         with col_cancel:
@@ -122,19 +178,22 @@ if opcion == "⏱️ Cronómetro":
                 st.session_state.actividad_en_curso = None
                 st.rerun()
 
-    # Tabla de registros guardados hoy
+    # Cargar registros desde Supabase
     st.markdown("---")
-    st.subheader("📋 Registros de Hoy")
+    st.subheader("📋 Tus Registros Guardados")
+    res_regs = supabase.table("registros").select("*").eq("user_id", user_id).execute()
     
-    if len(st.session_state.registros) > 0:
-        df_registros = pd.DataFrame(st.session_state.registros)
-        st.dataframe(df_registros, use_container_width=True)
-        
-        total_minutos = df_registros["Minutos"].sum()
+    if len([enlace sospechoso eliminado]) > 0:
+        df_registros = pd.DataFrame([enlace sospechoso eliminado])
+        st.dataframe(
+            df_registros[["fecha", "tarea", "codigo", "categoria", "valor", "inicio", "fin", "minutos", "horas"]],
+            use_container_width=True
+        )
+        total_minutos = df_registros["minutos"].sum()
         total_horas = round(total_minutos / 60, 2)
-        st.metric("Total Acumulado Hoy", f"{total_horas} horas ({round(total_minutos, 1)} min)")
+        st.metric("Total Acumulado", f"{total_horas} horas ({round(total_minutos, 1)} min)")
     else:
-        st.info("Aún no has registrado ninguna actividad. ¡Inicia una arriba!")
+        [enlace sospechoso eliminado]("Aún no tienes registros guardados en tu cuenta. ¡Inicia uno arriba!")
 
 # ----------------------------------------------------
 # SECCIÓN 2: DASHBOARD Y ANÁLISIS
@@ -142,20 +201,19 @@ if opcion == "⏱️ Cronómetro":
 elif opcion == "📊 Dashboard y Análisis":
     st.header("📊 Cuadro de Mandos y Diagnóstico de Tiempo")
     
-    if len(st.session_state.registros) == 0:
-        st.warning("⚠️ Todavía no hay actividades registradas. Ve a la pestaña '⏱️ Cronómetro' y guarda al menos una tarea para ver tu análisis.")
+    res_regs = supabase.table("registros").select("*").eq("user_id", user_id).execute()
+    
+    if len([enlace sospechoso eliminado]) == 0:
+        st.warning("⚠️ No hay actividades registradas en tu cuenta para mostrar el diagnóstico.")
     else:
-        df = pd.DataFrame(st.session_state.registros)
-        total_minutos_totales = df["Minutos"].sum()
+        df = pd.DataFrame([enlace sospechoso eliminado])
+        total_minutos_totales = df["minutos"].sum()
         total_horas_totales = round(total_minutos_totales / 60, 2)
         
-        # 1. Métricas Clave Superiores
         col_m1, col_m2, col_m3 = st.columns(3)
-        
-        minutos_alto_valor = df[df["Valor"] == "Alto Valor (20% bisagra)"]["Minutos"].sum()
+        minutos_alto_valor = df[df["valor"] == "Alto Valor (20% bisagra)"]["minutos"].sum()
         pct_alto_valor = round((minutos_alto_valor / total_minutos_totales) * 100, 1) if total_minutos_totales > 0 else 0
-        
-        minutos_fugas = df[df["Valor"] == "🚨 Fuga de Tiempo / Distracción"]["Minutos"].sum()
+        minutos_fugas = df[df["valor"] == "🚨 Fuga de Tiempo / Distracción"]["minutos"].sum()
         horas_fugas = round(minutos_fugas / 60, 2)
         
         with col_m1:
@@ -166,69 +224,41 @@ elif opcion == "📊 Dashboard y Análisis":
             st.metric("🚨 Tiempo en Fugas / Distracciones", f"{horas_fugas} h ({round(minutos_fugas, 1)} min)")
         
         st.markdown("---")
-        
-        # 2. Análisis por 5 Áreas Clave vs Ideal
         st.subheader("1. Distribución de Tiempo por Categorías (5 Áreas)")
         
-        resumen_cat = df.groupby("Código")["Minutos"].sum().reset_index()
-        
+        resumen_cat = df.groupby("codigo")["minutos"].sum().reset_index()
         categorias_base = pd.DataFrame({
-            "Código": ["A", "B", "C", "D", "E"],
-            "Nombre Categoría": [
-                "A - Vida Personal",
-                "B - Familia y Pareja",
-                "C - Vida Social",
-                "D - Trabajo y Hogar",
-                "E - Estudio y Formación"
-            ],
+            "codigo": ["A", "B", "C", "D", "E"],
+            "Nombre Categoría": ["A - Vida Personal", "B - Familia y Pareja", "C - Vida Social", "D - Trabajo y Hogar", "E - Estudio y Formación"],
             "% Ideal": [20.0, 15.0, 10.0, 35.0, 20.0]
         })
         
-        df_analisis = pd.merge(categorias_base, resumen_cat, on="Código", how="left").fillna(0)
-        df_analisis["Horas Reales"] = round(df_analisis["Minutos"] / 60, 2)
-        df_analisis["% Real"] = round((df_analisis["Minutos"] / total_minutos_totales) * 100, 1) if total_minutos_totales > 0 else 0
+        df_analisis = pd.merge(categorias_base, resumen_cat, on="codigo", how="left").fillna(0)
+        df_analisis["Horas Reales"] = round(df_analisis["minutos"] / 60, 2)
+        df_analisis["% Real"] = round((df_analisis["minutos"] / total_minutos_totales) * 100, 1) if total_minutos_totales > 0 else 0
         df_analisis["Diferencia (% Real - Ideal)"] = round(df_analisis["% Real"] - df_analisis["% Ideal"], 1)
         
         col_graf, col_tabla = st.columns(2)
-        
         with col_graf:
             st.write("**Comparativa: % Real vs % Ideal**")
-            chart_data = df_analisis.set_index("Código")[["% Real", "% Ideal"]]
-            st.bar_chart(chart_data)
+            chart_data = df_analisis.set_index("codigo")[["% Real", "% Ideal"]]
+            [enlace sospechoso eliminado]_chart(chart_data)
             
         with col_tabla:
             st.write("**Tabla Detallada por Categorías**")
-            st.dataframe(
-                df_analisis[["Nombre Categoría", "Horas Reales", "% Real", "% Ideal", "Diferencia (% Real - Ideal)"]],
-                use_container_width=True
-            )
-        
-        st.markdown("---")
-        
-        # 3. Diagnóstico de Valor (Regla 80/20)
-        st.subheader("2. Desglose por Calidad de Tiempo (80/20)")
-        resumen_valor = df.groupby("Valor")["Minutos"].sum().reset_index()
-        resumen_valor["Horas"] = round(resumen_valor["Minutos"] / 60, 2)
-        resumen_valor["% del Total"] = round((resumen_valor["Minutos"] / total_minutos_totales) * 100, 1)
-        
-        col_v1, col_v2 = st.columns(2)
-        with col_v1:
-            st.dataframe(resumen_valor[["Valor", "Horas", "% del Total"]], use_container_width=True)
-        with col_v2:
-            if minutos_fugas > 0:
-                st.error(f"⚠️ **Alerta de Fuga:** Has acumulado {horas_fugas} horas en actividades clasificadas como distracción. Revisa estas tareas para definir estrategias de eliminación.")
-            else:
-                st.success("🎉 ¡Excelente! No has registrado fugas de tiempo ni distracciones en tus sesiones.")
+            st.dataframe(df_analisis[["Nombre Categoría", "Horas Reales", "% Real", "% Ideal", "Diferencia (% Real - Ideal)"]], use_container_width=True)
 
 # ----------------------------------------------------
-# SECCIÓN 3: PROYECTOS FINITOS
+# SECCIÓN 3: PROYECTOS FINITOS (SUPABASE)
 # ----------------------------------------------------
 elif opcion == "🎯 Proyectos (Máx 3)":
     st.header("🎯 Gestión de Proyectos Activos (Límite Finito)")
-    st.write("Según *Cuatro mil semanas* (Oliver Burkeman), para lograr progresos reales debemos **cerrar nuestra lista de compromisos y limitar el trabajo activo a un máximo de 3 proyectos simultáneos**.")
     
-    proyectos_activos = [p for p in st.session_state.proyectos if p["estado"] == "En Progreso"]
-    num_activos = len(proyectos_activos)
+    res_proj = supabase.table("proyectos").select("*").eq("user_id", user_id).execute()
+    proyectos_usuario = [enlace sospechoso eliminado]
+    
+    activos = [p for p in proyectos_usuario if p["estado"] == "En Progreso"]
+    num_activos = len(activos)
     
     col_p1, col_p2 = st.columns(2)
     with col_p1:
@@ -254,57 +284,59 @@ elif opcion == "🎯 Proyectos (Máx 3)":
             else:
                 quiere_activo = "En Progreso" in estado_deseado
                 if quiere_activo and num_activos >= 3:
-                    st.error("❌ No puedes crearlo 'En Progreso'. Ya tienes 3 proyectos activos. Se guardará en 'En Espera'.")
-                    st.session_state.proyectos.append({"nombre": nuevo_nombre, "estado": "En Espera", "foco": nuevo_foco})
-                    st.rerun()
+                    st.error("❌ Capacidad llena. Se guardará en 'En Espera'.")
+                    estado_final = "En Espera"
                 else:
                     estado_final = "En Progreso" if quiere_activo else "En Espera"
-                    st.session_state.proyectos.append({"nombre": nuevo_nombre, "estado": estado_final, "foco": nuevo_foco})
-                    st.toast(f"✅ Proyecto '{nuevo_nombre}' creado en {estado_final}")
-                    st.rerun()
+                
+                supabase.table("proyectos").insert({
+                    "user_id": user_id,
+                    "nombre": nuevo_nombre,
+                    "foco": nuevo_foco,
+                    "estado": estado_final
+                }).execute()
+                st.toast(f"✅ Proyecto guardado en {estado_final}")
+                st.rerun()
 
     st.markdown("---")
     st.subheader("2. Proyectos Activos en Ejecución (Máximo 3)")
-    
     if num_activos == 0:
-        st.info("No tienes ningún proyecto activo. Activa alguno de tu lista en espera abajo.")
+        [enlace sospechoso eliminado]("No tienes proyectos activos en tu cuenta.")
     else:
-        for idx, p in enumerate(st.session_state.proyectos):
-            if p["estado"] == "En Progreso":
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.markdown(f"🔥 **{p['nombre']}** `[{p['foco']}]`")
-                with c2:
-                    if st.button("✅ Completar", key=f"comp_{idx}"):
-                        st.session_state.proyectos[idx]["estado"] = "Completado"
-                        st.rerun()
-                with c3:
-                    if st.button("⏸️ Pausar", key=f"pause_{idx}"):
-                        st.session_state.proyectos[idx]["estado"] = "En Espera"
-                        st.rerun()
+        for p in activos:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.markdown(f"🔥 **{p['nombre']}** `[{p['foco']}]`")
+            with c2:
+                if st.button("✅ Completar", key=f"comp_{p['id']}"):
+                    supabase.table("proyectos").update({"estado": "Completado"}).eq("id", p['id']).execute()
+                    st.rerun()
+            with c3:
+                if st.button("⏸️ Pausar", key=f"pause_{p['id']}"):
+                    supabase.table("proyectos").update({"estado": "En Espera"}).eq("id", p['id']).execute()
+                    st.rerun()
 
     st.markdown("---")
     st.subheader("3. Lista Abierta (En Espera / Ideas Pendientes)")
-    
-    proyectos_espera = [(i, p) for i, p in enumerate(st.session_state.proyectos) if p["estado"] == "En Espera"]
-    if len(proyectos_espera) == 0:
-        st.caption("No tienes proyectos pendientes en la lista de espera.")
+    espera = [p for p in proyectos_usuario if p["estado"] == "En Espera"]
+    if len(espera) == 0:
+        st.caption("No tienes proyectos pendientes.")
     else:
-        for idx, p in proyectos_espera:
+        for p in espera:
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown(f"💤 **{p['nombre']}** `[{p['foco']}]`")
             with c2:
-                if st.button("▶️ Activar", key=f"act_{idx}"):
+                if st.button("▶️ Activar", key=f"act_{p['id']}"):
                     if num_activos >= 3:
                         st.error("❌ Capacidad llena (3/3). Completa o pausa uno activo primero.")
                     else:
-                        st.session_state.proyectos[idx]["estado"] = "En Progreso"
+                        supabase.table("proyectos").update({"estado": "En Progreso"}).eq("id", p['id']).execute()
                         st.rerun()
 
     st.markdown("---")
     st.subheader("4. Histórico de Proyectos Completados")
-    completados = [p for p in st.session_state.proyectos if p["estado"] == "Completado"]
+    completados = [p for p in proyectos_usuario if p["estado"] == "Completado"]
     if len(completados) == 0:
         st.caption("Aún no has completado proyectos.")
     else:
