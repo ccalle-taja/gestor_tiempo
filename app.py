@@ -91,10 +91,11 @@ offset_horas = st.sidebar.number_input(
 )
 
 def obtener_hora_local():
-    return [enlace sospechoso eliminado](timezone.utc) + timedelta(hours=offset_horas)
+    now_utc = datetime.now(timezone.utc)
+    return now_utc + timedelta(hours=offset_horas)
 
 hora_actual_str = obtener_hora_local().strftime("%H:%M:%S")
-[enlace sospechoso eliminado](f"🕒 **Hora local actual:** {hora_actual_str}")
+st.sidebar.markdown(f"🕒 **Hora local actual:** {hora_actual_str}")
 
 if st.sidebar.button("Cerrar Sesión"):
     supabase.auth.sign_out()
@@ -102,7 +103,7 @@ if st.sidebar.button("Cerrar Sesión"):
     st.rerun()
 
 st.sidebar.markdown("---")
-opcion = [enlace sospechoso eliminado](
+opcion = st.sidebar.radio(
     "Selecciona una sección:",
     ["⏱️ Cronómetro y Registros", "📊 Dashboard y Análisis", "🎯 Proyectos (Máx 3)"]
 )
@@ -127,7 +128,7 @@ if "actividad_en_curso" not in st.session_state:
     st.session_state.actividad_en_curso = None
 
 # ----------------------------------------------------
-# SECCIÓN 1: CRONÓMETRO Y REGISTROS (VIVO / MANUAL / EDICIÓN)
+# SECCIÓN 1: CRONÓMETRO Y REGISTROS
 # ----------------------------------------------------
 if opcion == "⏱️ Cronómetro y Registros":
     st.header("⏱️ Control de Actividades")
@@ -207,7 +208,7 @@ if opcion == "⏱️ Cronómetro y Registros":
         with st.form("form_manual"):
             col_m1, col_m2 = st.columns(2)
             with col_m1:
-                fecha_manual = [enlace sospechoso eliminado]_input("Fecha de la actividad:", value=obtener_hora_local().date())
+                fecha_manual = st.date_input("Fecha de la actividad:", value=obtener_hora_local().date())
                 tarea_manual = st.text_input("Nombre de la tarea:", placeholder="Ej: Lectura matutina")
                 cat_manual = st.selectbox("Categoría:", CATEGORIAS_LISTA, key="cat_man")
             with col_m2:
@@ -318,7 +319,7 @@ if opcion == "⏱️ Cronómetro y Registros":
                         st.toast("🗑️ Registro eliminado")
                         st.rerun()
     else:
-        [enlace sospechoso eliminado]("Aún no tienes registros guardados en tu cuenta. ¡Inicia uno o agrégalo manualmente arriba!")
+        st.info("Aún no tienes registros guardados en tu cuenta. ¡Inicia uno o agrégalo manualmente arriba!")
 
 # ----------------------------------------------------
 # SECCIÓN 2: DASHBOARD Y ANÁLISIS
@@ -368,7 +369,7 @@ elif opcion == "📊 Dashboard y Análisis":
         with col_graf:
             st.write("**Comparativa: % Real vs % Ideal**")
             chart_data = df_analisis.set_index("codigo")[["% Real", "% Ideal"]]
-            [enlace sospechoso eliminado]_chart(chart_data)
+            st.bar_chart(chart_data)
             
         with col_tabla:
             st.write("**Tabla Detallada por Categorías**")
@@ -405,7 +406,7 @@ elif opcion == "🎯 Proyectos (Máx 3)":
             nuevo_foco = st.selectbox("Área / Enfoque:", ["Trabajo", "Estudio / Formación", "Personal / Salud", "Familia / Hogar"])
             estado_deseado = st.selectbox("Estado inicial:", ["En Progreso (Lista Cerrada)", "En Espera / Backlog (Lista Abierta)"])
         with col_f2:
-            fecha_limite_input = [enlace sospechoso eliminado]_input("📅 Fecha Límite (Opcional):", value=obtener_hora_local().date() + timedelta(days=30))
+            fecha_limite_input = st.date_input("📅 Fecha Límite (Opcional):", value=obtener_hora_local().date() + timedelta(days=30))
         
         btn_guardar_proj = st.form_submit_button("➕ Guardar Proyecto", type="primary")
         
@@ -456,10 +457,10 @@ elif opcion == "🎯 Proyectos (Máx 3)":
     st.markdown("---")
     st.subheader("2. Proyectos Activos en Ejecución (Máximo 3)")
     if num_activos == 0:
-        [enlace sospechoso eliminado]("No tienes proyectos activos en tu cuenta.")
+        st.info("No tienes proyectos activos en tu cuenta.")
     else:
         for p in activos:
-            c1, c2, c3 = st.columns()
+            c1, c2, c3 = st.columns(3)
             info_flim = formato_fecha_limite(p.get("fecha_limite"))
             with c1:
                 st.markdown(f"🔥 **{p['nombre']}** `[{p['foco']}]` — {info_flim}")
@@ -479,7 +480,7 @@ elif opcion == "🎯 Proyectos (Máx 3)":
         st.caption("No tienes proyectos pendientes.")
     else:
         for p in espera:
-            c1, c2 = st.columns()
+            c1, c2 = st.columns(2)
             info_flim = formato_fecha_limite(p.get("fecha_limite"))
             with c1:
                 st.markdown(f"💤 **{p['nombre']}** `[{p['foco']}]` — {info_flim}")
